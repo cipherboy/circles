@@ -11,8 +11,9 @@
         this.canvas = false;
         this.ctx = false;
         this.oelement = '';
+        this.reset = false;
 
-        this.cursor = [0, 0];
+        this.cursor = [640, 360];
 
         this.balls = [];
         this.colors = ['#4B073A', '#29002F', '#000B77', '#610000'];
@@ -20,6 +21,7 @@
         this.running = false;
 
         this.size = 4;
+        this.count = 0;
 
         this.init = function(canvas, overlay) {
           this.celement = canvas;
@@ -27,6 +29,12 @@
           this.ctx = this.canvas.getContext('2d');
 
           this.oelement = overlay;
+          this.size = 4;
+          this.count = 0;
+          this.balls = [];
+          this.cursor = [640, 360];
+
+          this.reset = false;
         };
 
         this.start = function() {
@@ -35,6 +43,10 @@
 
           this.running = true;
 
+          if (this.reset) {
+            this.init(this.celement, this.oelement);
+          }
+
           this.main(this);
           this.draw(this);
         };
@@ -42,9 +54,10 @@
         this.main = function(instance) {
           instance.addBall();
           instance.moveBalls();
+          instance.collision();
 
           if (instance.running) {
-            setTimeout(instance.main, 30, instance);
+            setTimeout(instance.main, 20, instance);
           }
         };
 
@@ -103,7 +116,7 @@
             c = Math.PI/2;
           }
 
-          nball['speed'] = 1 + Math.random()*7.5;
+          nball['speed'] = 1 + Math.random()*5;
           nball['color'] = this.colors[parseInt(Math.random() * this.colors.length)];
           var min = -1 * Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(x, 2) ) ));
           var max = Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(w - x, 2) ) ));
@@ -148,6 +161,30 @@
           }
         };
 
+        this.collision = function() {
+          var x = this.cursor[0];
+          var y = this.cursor[1];
+          for (var item in this.balls) {
+            var bx = this.balls[item]['x'];
+            var by = this.balls[item]['y'];
+            var distance = Math.sqrt( Math.pow( (bx - x) , 2) + Math.pow( (by - y) , 2) );
+            var radii = 2*(this.balls[item]['radius'] + this.size);
+            if (distance <= radii) {
+              if (this.balls[item]['radius'] > this.size) {
+                this.gameOver();
+              } else {
+                this.size += 0.5 * (this.balls[item]['radius'] / this.size);
+                this.balls.splice(item, 1);
+                this.count += 1;
+
+                return true;
+              }
+            }
+          }
+
+          return false;
+        };
+
         this.distanceTo = function(x1, y1, x2, y2) {
           return Math.sqrt(Math.pow((x2 - x1), 2), + Math.pow((y2 - y1), 2));
         };
@@ -177,6 +214,8 @@
             frame += ",ss:" + instance.colors[color] + ",fs:" + instance.colors[color] + ",f,s,c,";
           }
 
+          frame += ",b,m:" + instance.cursor[0] + ":" + instance.cursor[1] + ",a:" + instance.cursor[0] + ":" + instance.cursor[1] + ":" + (instance.size*2) + ":0:" + Math.PI*2 + ",ss:#4466AA,fs:#4466AA,f,s,c,";
+
           jCanvasDraw(instance.canvas, instance.ctx, frame);
 
           var s2 = new Date().getTime();
@@ -198,10 +237,26 @@
           $(window).on('blur', { instance: this }, function(event) {
             event.data.instance.pause();
           });
+          $(document).on('mousemove', 'canvas', { instance: this }, function(event) {
+            event.data.instance.cursor = [
+              event.clientX * (1280 / $('#' + event.data.instance.celement).width()),
+              event.clientY * (720 / $('#' + event.data.instance.celement).height()),
+            ];
+          });
+        };
+
+        this.gameOver = function() {
+          this.running = false;
+          this.unbindEvents();
+          this.reset = true;
+          $('#' + this.oelement).show();
+          $('#' + this.oelement + ' span').html('Game over! Score: ' + this.count);
+          $('#' + this.oelement + ' button').html('Restart');
         };
 
         this.unbindEvents = function() {
           $(window).off('blur');
+          $(document).off('mousemove', 'canvas');
         };
       }
     </script>
@@ -269,6 +324,7 @@
       <div id="center">
         <span id="text">To play, drag your cursor around the arena.</span><br>
         <button onclick="game.start();">Start</button>
+        Inspired by <a href="http://sysach.com/circle-game/">circle-game</a>.
       </div>
     </div>
     <script type="text/javascript">
