@@ -52,12 +52,14 @@
         };
 
         this.main = function(instance) {
+          var s1 = new Date().getTime();
           instance.addBall();
           instance.moveBalls();
           instance.collision();
+          var s2 = new Date().getTime();
 
           if (instance.running) {
-            setTimeout(instance.main, 20, instance);
+            setTimeout(instance.main, (60 - (s2 - s1)), instance);
           }
         };
 
@@ -116,7 +118,7 @@
             c = Math.PI/2;
           }
 
-          nball['speed'] = 1 + Math.random()*5;
+          nball['speed'] = 1 + Math.random()*(Math.sqrt(this.count) + 2);
           nball['color'] = this.colors[parseInt(Math.random() * this.colors.length)];
           var min = -1 * Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(x, 2) ) ));
           var max = Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(w - x, 2) ) ));
@@ -170,7 +172,7 @@
             var distance = Math.sqrt( Math.pow( (bx - x) , 2) + Math.pow( (by - y) , 2) );
             var radii = 2*(this.balls[item]['radius'] + this.size);
             if (distance <= radii) {
-              if (this.balls[item]['radius'] > this.size) {
+              if (this.balls[item]['radius'] > this.size+0.5) {
                 this.gameOver();
               } else {
                 this.size += 0.5 * (this.balls[item]['radius'] / this.size);
@@ -211,7 +213,7 @@
               item = by_color[color][index]
               frame += "m:" + instance.balls[item]['x'] + ":" + instance.balls[item]['y'] + ",a:" + instance.balls[item]['x'] + ":" + instance.balls[item]['y'] + ":" + (instance.balls[item]['radius']*2) + ":0:" + Math.PI*2 + ","
             }
-            frame += ",ss:" + instance.colors[color] + ",fs:" + instance.colors[color] + ",f,s,c,";
+            frame += ",fs:" + instance.colors[color] + ",f,c,";
           }
 
           frame += ",b,m:" + instance.cursor[0] + ":" + instance.cursor[1] + ",a:" + instance.cursor[0] + ":" + instance.cursor[1] + ":" + (instance.size*2) + ":0:" + Math.PI*2 + ",ss:#4466AA,fs:#4466AA,f,s,c,";
@@ -221,15 +223,7 @@
           var s2 = new Date().getTime();
 
           if (instance.running) {
-            if ((s2 - s1) > 30) {
-              setTimeout(instance.draw, 0, instance);
-            } else if ((s2 - s1) > 20) {
-              setTimeout(instance.draw, 5, instance);
-            } else if ((s2 - s1) > 10) {
-              setTimeout(instance.draw, 15, instance);
-            } else {
-              setTimeout(instance.draw, 20, instance);
-            }
+            setTimeout(instance.draw, 40 - (s2 - s1), instance);
           }
         };
 
@@ -237,10 +231,11 @@
           $(window).on('blur', { instance: this }, function(event) {
             event.data.instance.pause();
           });
+
           $(document).on('mousemove', 'canvas', { instance: this }, function(event) {
             event.data.instance.cursor = [
-              event.clientX * (1280 / $('#' + event.data.instance.celement).width()),
-              event.clientY * (720 / $('#' + event.data.instance.celement).height()),
+              event.clientX * (1280 / $('#' + event.data.instance.celement).width()) - 2*event.data.instance.size,
+              event.clientY * (720 / $('#' + event.data.instance.celement).height()) - 2*event.data.instance.size,
             ];
           });
         };
@@ -270,7 +265,7 @@
 
       canvas {
         width: 100%;
-        height: 100%;
+        max-height: 100%;
       }
 
       div#overlay {
@@ -314,6 +309,10 @@
         border: 1px solid #4466aa;
         border-radius: 5px;
       }
+
+      a {
+        color: #4466aa;
+      }
     </style>
   </head>
   <body>
@@ -322,7 +321,7 @@
     </canvas>
     <div id="overlay">
       <div id="center">
-        <span id="text">To play, drag your cursor around the arena.</span><br>
+        <span id="text">To play, drag your cursor around the arena<br>to eat smaller circles.</span><br>
         <button onclick="game.start();">Start</button>
         Inspired by <a href="http://sysach.com/circle-game/">circle-game</a>.
       </div>
