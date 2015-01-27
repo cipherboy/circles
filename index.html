@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Circles Game</title>
+    <script type="text/javascript" src="jCanvas.js"></script>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript">
+      function Controller() {
+        this.celement = '';
+        this.canvas = false;
+        this.ctx = false;
+        this.oelement = '';
+
+        this.cursor = [0, 0];
+
+        this.balls = [];
+        this.colors = ['#4B073A', '#29002F', '#000B77', '#610000'];
+
+        this.running = false;
+
+        this.size = 4;
+
+        this.init = function(canvas, overlay) {
+          this.celement = canvas;
+          this.canvas = document.getElementById(this.celement);
+          this.ctx = this.canvas.getContext('2d');
+
+          this.oelement = overlay;
+        };
+
+        this.start = function() {
+          $('#' + this.oelement).hide();
+          this.bindEvents();
+
+          this.running = true;
+
+          this.main(this);
+          this.draw(this);
+        };
+
+        this.main = function(instance) {
+          instance.addBall();
+          instance.moveBalls();
+
+          if (instance.running) {
+            setTimeout(instance.main, 30, instance);
+          }
+        };
+
+        this.pause = function() {
+          this.running = false;
+          $('#' + this.oelement).show();
+          $('#' + this.oelement + ' span').html('Game paused.');
+          $('#' + this.oelement + ' button').html('Resume');
+        };
+
+        this.addBall = function() {
+          var nball = {};
+          nball['radius'] = parseInt((this.size - 2) + Math.random()*20);
+          nball['draw'] = true;
+          var x = 1;
+          var w = 1;
+          var h = 1;
+          var r = 1;
+          var c = 1;
+          var rand = Math.random();
+          if (rand > 0.75) {
+            nball['x'] = 0 - 2 * nball['radius'];
+            nball['y'] = Math.random() * 720;
+            nball['max_x'] = 1280 + 2*nball['radius'];
+            r = nball['x'];
+            h = 1280/3;
+            w = 720;
+            x = nball['y'];
+            c = 0;
+          } else if (rand > 0.5) {
+            nball['x'] = 1280+2 * nball['radius'];
+            nball['y'] = Math.random() * 720;
+            nball['min_x'] = 0 + 2*nball['radius'];
+            r = nball['x'];
+            h = 1280/3;
+            w = 720;
+            x = nball['y'];
+            c = Math.PI;
+          } else if (rand > 0.25) {
+            nball['x'] = Math.random() * 1280;
+            nball['y'] = 0 - 2 * nball['radius'];
+            nball['max_y'] = 720 + 2*nball['radius'];
+            r = nball['y'];
+            h = 720/3;
+            w = 1280;
+            x = nball['x'];
+            c = -1 * Math.PI/2;
+          } else {
+            nball['x'] = Math.random() * 1280;
+            nball['y'] = 720 + 2 * nball['radius'];
+            nball['min_y'] = 720 + 2*nball['radius'];
+            r = nball['y'];
+            h = 720/3;
+            w = 1280;
+            x = nball['x'];
+            c = Math.PI/2;
+          }
+
+          nball['speed'] = 1 + Math.random()*7.5;
+          nball['color'] = this.colors[parseInt(Math.random() * this.colors.length)];
+          var min = -1 * Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(x, 2) ) ));
+          var max = Math.asin((h/3 + 2*r ) / ( Math.sqrt( Math.pow((h/3 + 2*r), 2) + Math.pow(w - x, 2) ) ));
+          nball['direction'] = ( min * Math.random()*(max - min) ) + c;
+          this.balls.push(nball);
+        };
+
+        this.moveBalls = function() {
+          var counter = 0;
+          for (var item in this.balls) {
+            if (this.balls[item]['draw']) {
+              this.balls[item]['x'] += this.balls[item]['speed'] * Math.cos(this.balls[item]['direction']);
+              this.balls[item]['y'] += this.balls[item]['speed'] * Math.sin(this.balls[item]['direction']);
+              if ('max_x' in this.balls[item] && this.balls[item]['x'] > this.balls[item]['max_x']) {
+                this.balls[item]['draw'] = false;
+                counter += 1;
+              }
+              if ('min_x' in this.balls[item] && this.balls[item]['x'] < this.balls[item]['min_x']) {
+                this.balls[item]['draw'] = false;
+                counter += 1;
+              }
+              if ('max_y' in this.balls[item] && this.balls[item]['y'] > this.balls[item]['max_y']) {
+                this.balls[item]['draw'] = false;
+                counter += 1;
+              }
+              if ('min_y' in this.balls[item] && this.balls[item]['y'] > this.balls[item]['min_y']) {
+                this.balls[item]['draw'] = false;
+                counter += 1;
+              }
+            }
+          }
+          var last = 0;
+          while (counter > 0) {
+            for (var i = last; i < this.balls.length; i++) {
+              if (!this.balls[i]['draw']) {
+                last = i-1;
+                this.balls.splice(i, 1);
+                counter -= 1;
+                continue;
+              }
+            }
+          }
+        };
+
+        this.distanceTo = function(x1, y1, x2, y2) {
+          return Math.sqrt(Math.pow((x2 - x1), 2), + Math.pow((y2 - y1), 2));
+        };
+
+        this.draw = function(instance) {
+          var s1 = new Date().getTime();
+          var frame = "cs,";
+          var by_color = [[], [], [], []];
+          for (var item in instance.balls) {
+            if (instance.colors[0] == instance.balls[item]['color']) {
+              by_color[0].push(item);
+            } else if (instance.colors[1] == instance.balls[item]['color']) {
+              by_color[1].push(item);
+            } else if (instance.colors[2] == instance.balls[item]['color']) {
+              by_color[2].push(item);
+            } else {
+              by_color[3].push(item);
+            }
+          }
+
+          for (var color in by_color) {
+            frame += "b,"
+            for (var index in by_color[color]) {
+              item = by_color[color][index]
+              frame += "m:" + instance.balls[item]['x'] + ":" + instance.balls[item]['y'] + ",a:" + instance.balls[item]['x'] + ":" + instance.balls[item]['y'] + ":" + (instance.balls[item]['radius']*2) + ":0:" + Math.PI*2 + ","
+            }
+            frame += ",ss:" + instance.colors[color] + ",fs:" + instance.colors[color] + ",f,s,c,";
+          }
+
+          jCanvasDraw(instance.canvas, instance.ctx, frame);
+
+          var s2 = new Date().getTime();
+
+          if (instance.running) {
+            if ((s2 - s1) > 30) {
+              setTimeout(instance.draw, 0, instance);
+            } else if ((s2 - s1) > 20) {
+              setTimeout(instance.draw, 5, instance);
+            } else if ((s2 - s1) > 10) {
+              setTimeout(instance.draw, 15, instance);
+            } else {
+              setTimeout(instance.draw, 20, instance);
+            }
+          }
+        };
+
+        this.bindEvents = function() {
+          $(window).on('blur', { instance: this }, function(event) {
+            event.data.instance.pause();
+          });
+        };
+
+        this.unbindEvents = function() {
+          $(window).off('blur');
+        };
+      }
+    </script>
+    <style type="text/css">
+      html,body {
+        width: 100%;
+        height: 100%;
+
+        overflow: hidden;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+
+      div#overlay {
+        font: monospace;
+        font-size: 2em;
+
+        position: absolute;
+        left: 0px;
+        top: 0px;
+
+        width: 100%;
+        height: 100%;
+
+        color: #4466AA;
+        background-color: rgba(150, 150, 150, 0.9);
+      }
+
+      div#center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+
+        width: 400px;
+        height: 200px;
+
+        margin-left: -200px;
+        margin-top: -100px;
+
+        text-align: center;
+      }
+
+      button {
+        font-size: 0.8em;
+
+        width: 300px;
+        height: 50px;
+
+        color: #ffffff;
+        background-color: #4466aa;
+
+        border: 1px solid #4466aa;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" width="1280" height="720">
+      HTML5 Canvas Support Required :(
+    </canvas>
+    <div id="overlay">
+      <div id="center">
+        <span id="text">To play, drag your cursor around the arena.</span><br>
+        <button onclick="game.start();">Start</button>
+      </div>
+    </div>
+    <script type="text/javascript">
+      $(function() {
+        game = new Controller();
+        game.init('game', 'overlay');
+      });
+    </script>
+  </body>
+</html>
